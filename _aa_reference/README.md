@@ -26,10 +26,44 @@ Git 按以下顺序管理：
 
 因此当前 `HEAD` 可以不同于上游提交；`make check-source` 核验 tag、祖先关系，并要求已提交的上游文件与基线一致，仅允许 `_aa_reference/` 的提交差异。它不检查尚未提交的源码编辑；运行对照实验前请用 `git diff` 确认这些修改。固定提交由 [upstream.commit](upstream.commit) 保存，新补丁版不自动改变基线。
 
-`origin` 指向官方 stable 仓库：`https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git`。当前是浅克隆，包含完整当前源码树，不包含完整历史；本地实验提交只保存在本仓库，尚未配置个人远程仓库。常用查看命令：
+个人仓库为 [s-infinite-box/linux](https://github.com/s-infinite-box/linux)，Fork 自 `gregkh/linux`，默认分支为 `codex/aa-reference-6.18`。本地远程分工如下：
+
+| 远程 | 地址 | 用途 |
+| --- | --- | --- |
+| `origin` | `https://github.com/s-infinite-box/linux.git` | 保存并推拉我们的学习分支，同时保留纯上游 `linux-6.18.y` |
+| `upstream` | `https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git` | 直接观察官方 6.18 stable 分支更新 |
+
+学习分支跟踪 `origin/codex/aa-reference-6.18`，默认推送远程为 `origin`。当前仍是浅克隆，包含完整当前源码树及本地实验提交，不包含全部内核开发历史；比较更早的历史时再按需深化。远程抓取范围限定到本实验相关分支，固定 tag 继续保留。
+
+在学习分支上日常同步自己的修改：
 
 ```sh
-git log --oneline --decorate -2
+git pull --ff-only
+# 修改文件后按需 git add 和 git commit，再推送自己的提交：
+git push
+```
+
+查看上游新修复与自己的修改：
+
+```sh
+git fetch upstream
+# 上游相对固定基线新增了什么：
+git log --oneline v6.18.54..upstream/linux-6.18.y
+# 我们相对固定基线提交了什么、改了哪些文件：
+git log --oneline v6.18.54..codex/aa-reference-6.18
+git diff --stat v6.18.54 codex/aa-reference-6.18
+```
+
+`fetch` 不改变当前工作区或学习基线。若要同步个人 Fork 中的纯上游分支，可在抓取后执行以下普通推送；它不会移动学习分支：
+
+```sh
+git push origin refs/remotes/upstream/linux-6.18.y:refs/heads/linux-6.18.y
+```
+
+固定基线仍为 `v6.18.54`；升级需显式讨论并同步锁文件、配置与验证记录。其他常用检查：
+
+```sh
+git log --oneline --decorate -3
 git diff v6.18.54 -- _aa_reference
 git status --short
 make -C _aa_reference check-source
