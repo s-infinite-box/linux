@@ -1,0 +1,29 @@
+#!/bin/sh
+# 这是现代 Linux 实验的 PID 1，运行于客户机内存中的 initramfs。
+# 不挂载宿主磁盘；BusyBox 提供查看 /proc、日志和源码实验所需的基本命令。
+set -eu
+export PATH=/bin
+/bin/busybox --install -s /bin
+mount -t proc proc /proc
+mount -t sysfs sysfs /sys
+mount -t devtmpfs devtmpfs /dev
+
+echo
+echo "[aa-ref] Linux $(uname -r), PID $$, $(uname -m)"
+echo "[aa-ref] Kernel -> initramfs -> /init reached."
+
+# 自动验证在客户机内正常关机，QEMU 退出后由宿主核对成功标记。
+case " $(cat /proc/cmdline) " in
+    *" aa_ref_test=1 "*)
+        if [ "$$" -ne 1 ]; then
+            echo "[FAIL] /init is not PID 1"
+        else
+            echo "[PASS] linux-reference userspace pid=1"
+        fi
+        poweroff -f
+        ;;
+esac
+
+echo "[aa-ref] Try: uname -a; cat /proc/cpuinfo; dmesg; poweroff -f"
+# 串口提供交互 shell；cttyhack 为这个新会话建立控制终端。
+exec setsid cttyhack /bin/sh
